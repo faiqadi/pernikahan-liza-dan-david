@@ -113,3 +113,19 @@ svg {
 .no-gap-bottom {
     margin-bottom: -0.75rem !important;
 }
+
+/* Gallery Carousels */
+#carousel-image-one .carousel-inner,
+#carousel-image-one .carousel-item,
+#carousel-image-two .carousel-inner,
+#carousel-image-two .carousel-item {
+    aspect-ratio: 3 / 2;
+}
+
+#carousel-image-one .carousel-item img,
+#carousel-image-two .carousel-item img {
+    width: 100%;
+    height: 100% !important;
+    object-fit: cover;
+    object-position: center;
+}
