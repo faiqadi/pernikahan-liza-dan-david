@@ -132,12 +132,21 @@ svg {
 
 /* Wedding Date Parallax */
 .parallax-wedding-date {
-    background-image: url('../assets/images/lamaran3.jpeg');
-    background-attachment: fixed;
-    background-position: center 30%;
-    background-repeat: no-repeat;
-    background-size: cover;
     position: relative;
+    clip-path: inset(0);
+    -webkit-clip-path: inset(0);
+}
+
+.parallax-wedding-date .parallax-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    z-index: -1;
+    pointer-events: none;
 }
 
 .parallax-wedding-date::before {
@@ -162,10 +171,4 @@ html[data-bs-theme="light"] .parallax-wedding-date::before {
             rgba(var(--bs-white-rgb), 0.5) 15%,
             rgba(var(--bs-white-rgb), 0.5) 85%,
             rgba(var(--bs-white-rgb), 1) 100%);
-}
-
-@media (min-width: 992px) {
-    .parallax-wedding-date {
-        background-attachment: scroll;
-    }
 }
