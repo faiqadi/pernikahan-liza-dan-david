@@ -19,6 +19,10 @@ export const audio = (() => {
             return;
         }
 
+        const rawStart = document.body.getAttribute('data-audio-start');
+        const hashStart = url.includes('#t=') ? url.split('#t=')[1] : null;
+        const startTime = Math.max(0, Number(rawStart || hashStart || 0));
+
         /**
          * @type {HTMLAudioElement|null}
          */
@@ -30,6 +34,14 @@ export const audio = (() => {
             audioEl.muted = false;
             audioEl.autoplay = false;
             audioEl.controls = false;
+
+            if (startTime > 0) {
+                audioEl.addEventListener('loadedmetadata', () => {
+                    try {
+                        audioEl.currentTime = startTime;
+                    } catch {}
+                }, { once: true });
+            }
 
             progress.complete('audio');
         } catch {
@@ -50,6 +62,12 @@ export const audio = (() => {
 
             music.disabled = true;
             try {
+                if (startTime > 0 && audioEl.currentTime < 1) {
+                    try {
+                        audioEl.currentTime = startTime;
+                    } catch {}
+                }
+
                 await audioEl.play();
                 isPlay = true;
                 music.disabled = false;
