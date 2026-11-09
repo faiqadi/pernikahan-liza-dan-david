@@ -339,7 +339,14 @@ export const guest = (() => {
             img.download(e.currentTarget.getAttribute('data-src'));
         });
 
-        if (!token || token.length <= 0) {
+        const isGoogleSheets = document.body.getAttribute('data-url')?.includes('script.google.com');
+
+        if (isGoogleSheets) {
+            vid.load();
+            img.load();
+            aud.load();
+            lib.load({ confetti: document.body.getAttribute('data-confetti') === 'true' });
+        } else if (!token || token.length <= 0) {
             document.getElementById('comment')?.remove();
             document.querySelector('a.nav-link[href="#comment"]')?.closest('li.nav-item')?.remove();
 
@@ -347,9 +354,7 @@ export const guest = (() => {
             img.load();
             aud.load();
             lib.load({ confetti: document.body.getAttribute('data-confetti') === 'true' });
-        }
-
-        if (token && token.length > 0) {
+        } else if (token && token.length > 0) {
             // add 2 progress for config and comment.
             // before img.load();
             progress.add();
