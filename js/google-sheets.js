@@ -27,7 +27,11 @@
             const params = new URLSearchParams(window.location.search);
             const toParam = params.get('to');
             if (toParam) {
-                formName.value = decodeURIComponent(toParam);
+                try {
+                    formName.value = decodeURIComponent(toParam.replace(/\+/g, ' ')).trim();
+                } catch {
+                    formName.value = toParam.replace(/\+/g, ' ').trim();
+                }
             } else {
                 try {
                     const saved = localStorage.getItem('guest_name');
