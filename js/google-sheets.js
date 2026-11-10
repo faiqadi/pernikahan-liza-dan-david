@@ -54,7 +54,17 @@
                 const badge = isHadir
                     ? '<i class="fa-solid fa-circle-check text-success ms-1" title="Hadir"></i>'
                     : '<i class="fa-solid fa-circle-xmark text-danger ms-1" title="Berhalangan"></i>';
-                const dateStr = c.date ? escapeHtml(String(c.date)) : '';
+                
+                let dateStr = '';
+                if (c.date) {
+                    const parsedDate = new Date(c.date);
+                    if (!isNaN(parsedDate.getTime()) && String(c.date).includes('-')) {
+                        dateStr = parsedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' +
+                                  parsedDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        dateStr = escapeHtml(String(c.date));
+                    }
+                }
 
                 return `
                 <div class="bg-theme-auto shadow p-3 mx-0 mt-0 mb-3 rounded-4">
@@ -79,16 +89,34 @@
                 </div>`;
 
             try {
-                const res = await fetch(url, { method: 'GET' });
-                const json = await res.json();
+                const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+                const text = await res.text();
+                console.log('Google Sheets response:', text);
+
+                let json;
+                try {
+                    json = JSON.parse(text);
+                } catch (parseErr) {
+                    console.error('Response bukan JSON valid:', text.substring(0, 500));
+                    renderList([]);
+                    return;
+                }
+
                 if (json && json.status === 'success' && Array.isArray(json.data)) {
                     renderList(json.data);
                 } else {
+                    console.warn('Format response tidak sesuai:', json);
                     renderList([]);
                 }
             } catch (err) {
-                console.warn('Gagal memuat ucapan dari Google Sheets:', err);
-                renderList([]);
+                console.error('Gagal memuat ucapan dari Google Sheets:', err);
+                commentsEl.innerHTML = `
+                    <div class="text-center p-4 mx-0 mt-0 mb-3 bg-theme-auto rounded-4 shadow">
+                        <p class="fw-bold p-0 m-0 text-danger" style="font-size: 0.95rem;">
+                            ⚠️ Gagal memuat ucapan. Silakan refresh halaman.
+                        </p>
+                        <small class="text-muted">${escapeHtml(err.message)}</small>
+                    </div>`;
             }
         };
 
@@ -121,20 +149,19 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mengirim...';
 
             try {
-                // Siapkan data dengan URLSearchParams (format application/x-www-form-urlencoded)
-                const params = new URLSearchParams();
-                params.append('name', name);
-                params.append('presence', presence === '1' ? 'Hadir' : 'Berhalangan');
-                params.append('comment', comment);
+                // Siapkan data sebagai FormData
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('presence', presence === '1' ? '1' : '0');
+                formData.append('comment', comment);
 
                 // Kirim POST ke Web App Google Script
+                // Menggunakan mode no-cors karena Google Apps Script tidak support CORS
+                // dengan FormData agar data diterima oleh doPost(e) sebagai e.parameter
                 await fetch(url, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: params.toString()
+                    body: formData
                 });
 
                 // Simpan nama ke localStorage
