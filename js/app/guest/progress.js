@@ -78,8 +78,17 @@ export const progress = (() => {
     const init = () => {
         info = document.getElementById('progress-info');
         bar = document.getElementById('progress-bar');
-        info.classList.remove('d-none');
+        if (info) info.classList.remove('d-none');
         cancelProgress = new Promise((res) => document.addEventListener('undangan.progress.invalid', res));
+
+        // Safety fallback timeout: jika ada aset yang tertunda, paksa selesai agar halaman tidak macet
+        setTimeout(() => {
+            if (valid) {
+                valid = false;
+                cancelProgress = null;
+                document.dispatchEvent(new Event('undangan.progress.done'));
+            }
+        }, 1200);
     };
 
     return {

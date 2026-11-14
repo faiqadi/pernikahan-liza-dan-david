@@ -84,24 +84,18 @@
             }).join('');
         };
 
-        // Load ucapan dari Google Sheets (GET)
+        // Load ucapan dari Google Sheets (GET) tanpa loading spinner awal
         const loadComments = async () => {
             if (!commentsEl) return;
-            commentsEl.innerHTML = `
-                <div class="text-center p-3 text-secondary">
-                    <span class="spinner-border spinner-border-sm me-2"></span>Memuat ucapan...
-                </div>`;
 
             try {
                 const res = await fetch(url, { method: 'GET', redirect: 'follow' });
                 const text = await res.text();
-                console.log('Google Sheets response:', text);
 
                 let json;
                 try {
                     json = JSON.parse(text);
-                } catch (parseErr) {
-                    console.error('Response bukan JSON valid:', text.substring(0, 500));
+                } catch {
                     renderList([]);
                     return;
                 }
@@ -109,18 +103,11 @@
                 if (json && json.status === 'success' && Array.isArray(json.data)) {
                     renderList(json.data);
                 } else {
-                    console.warn('Format response tidak sesuai:', json);
                     renderList([]);
                 }
             } catch (err) {
-                console.error('Gagal memuat ucapan dari Google Sheets:', err);
-                commentsEl.innerHTML = `
-                    <div class="text-center p-4 mx-0 mt-0 mb-3 bg-theme-auto rounded-4 shadow">
-                        <p class="fw-bold p-0 m-0 text-danger" style="font-size: 0.95rem;">
-                            ⚠️ Gagal memuat ucapan. Silakan refresh halaman.
-                        </p>
-                        <small class="text-muted">${escapeHtml(err.message)}</small>
-                    </div>`;
+                console.warn('Gagal memuat ucapan dari Google Sheets:', err);
+                renderList([]);
             }
         };
 
@@ -153,19 +140,17 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mengirim...';
 
             try {
-                // Siapkan data sebagai FormData
-                const formData = new FormData();
-                formData.append('name', name);
-                formData.append('presence', presence === '1' ? '1' : '0');
-                formData.append('comment', comment);
+                // Siapkan data sebagai URLSearchParams dan FormData agar kompatibel
+                const params = new URLSearchParams();
+                params.append('name', name);
+                params.append('presence', presence === '1' ? '1' : '0');
+                params.append('comment', comment);
 
                 // Kirim POST ke Web App Google Script
-                // Menggunakan mode no-cors karena Google Apps Script tidak support CORS
-                // dengan FormData agar data diterima oleh doPost(e) sebagai e.parameter
                 await fetch(url, {
                     method: 'POST',
                     mode: 'no-cors',
-                    body: formData
+                    body: params
                 });
 
                 // Simpan nama ke localStorage

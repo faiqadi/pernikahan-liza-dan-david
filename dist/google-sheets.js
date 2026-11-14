@@ -1,34 +1,233 @@
-(()=>{(()=>{let r=o=>String(o||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"),g=()=>{let o=document.body.getAttribute("data-url");if(!o||!o.includes("script.google.com"))return;let s=document.getElementById("comments"),i=document.getElementById("form-name"),f=document.getElementById("form-presence"),l=document.getElementById("form-comment"),d=document.getElementById("button-send-comment")||document.querySelector("#comment button.btn-primary")||document.querySelector('#comment button[onclick*="comment.send"]');if(i){let e=new URLSearchParams(window.location.search).get("to");if(e)i.value=decodeURIComponent(e);else try{let a=localStorage.getItem("guest_name");a&&(i.value=a)}catch{}}let u=t=>{if(s){if(!t||t.length===0){s.innerHTML=`
+(() => {
+    const escapeHtml = (str) => {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    const init = () => {
+        const url = document.body.getAttribute('data-url');
+        if (!url || !url.includes('script.google.com')) {
+            return;
+        }
+
+        const commentsEl = document.getElementById('comments');
+        const formName = document.getElementById('form-name');
+        const formPresence = document.getElementById('form-presence');
+        const formComment = document.getElementById('form-comment');
+        const sendBtn = document.getElementById('button-send-comment') 
+            || document.querySelector('#comment button.btn-primary') 
+            || document.querySelector('#comment button[onclick*="comment.send"]');
+
+        // Auto-fill nama tamu dari query param ?to=
+        if (formName) {
+            const params = new URLSearchParams(window.location.search);
+            const toParam = params.get('to');
+            if (toParam) {
+                try {
+                    formName.value = decodeURIComponent(toParam.replace(/\+/g, ' ')).trim();
+                } catch {
+                    formName.value = toParam.replace(/\+/g, ' ').trim();
+                }
+            } else {
+                try {
+                    const saved = localStorage.getItem('guest_name');
+                    if (saved) formName.value = saved;
+                } catch {}
+            }
+        }
+
+        // Render card komentar
+        const renderList = (items) => {
+            if (!commentsEl) return;
+            if (!items || items.length === 0) {
+                commentsEl.innerHTML = `
                     <div class="text-center p-4 mx-0 mt-0 mb-3 bg-theme-auto rounded-4 shadow">
                         <p class="fw-bold p-0 m-0" style="font-size: 0.95rem;">
-                            \u{1F4E2} Belum ada ucapan. Jadilah yang pertama memberikan ucapan & doa! \u{1F389}
+                            📢 Belum ada ucapan. Jadilah yang pertama memberikan ucapan & doa! 🎉
                         </p>
-                    </div>`;return}s.innerHTML=t.map(e=>{let c=e.presence===!0||e.presence==="Hadir"||e.presence=="1"?'<i class="fa-solid fa-circle-check text-success ms-1" title="Hadir"></i>':'<i class="fa-solid fa-circle-xmark text-danger ms-1" title="Berhalangan"></i>',m="";if(e.date){let n=new Date(e.date);!isNaN(n.getTime())&&String(e.date).includes("-")?m=n.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})+", "+n.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}):m=r(String(e.date))}return`
+                    </div>`;
+                return;
+            }
+
+            commentsEl.innerHTML = items.map((c) => {
+                const isHadir = c.presence === true || c.presence === 'Hadir' || c.presence == '1';
+                const badge = isHadir
+                    ? '<i class="fa-solid fa-circle-check text-success ms-1" title="Hadir"></i>'
+                    : '<i class="fa-solid fa-circle-xmark text-danger ms-1" title="Berhalangan"></i>';
+                
+                let dateStr = '';
+                if (c.date) {
+                    const parsedDate = new Date(c.date);
+                    if (!isNaN(parsedDate.getTime()) && String(c.date).includes('-')) {
+                        dateStr = parsedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' +
+                                  parsedDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        dateStr = escapeHtml(String(c.date));
+                    }
+                }
+
+                return `
                 <div class="bg-theme-auto shadow p-3 mx-0 mt-0 mb-3 rounded-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <p class="text-theme-auto text-truncate m-0 p-0" style="font-size: 0.95rem;">
-                            <strong class="me-1">${r(e.name||"Tamu")}</strong> ${c}
+                            <strong class="me-1">${escapeHtml(c.name || 'Tamu')}</strong> ${badge}
                         </p>
-                        <small class="text-theme-auto m-0 p-0" style="font-size: 0.75rem;">${m}</small>
+                        <small class="text-theme-auto m-0 p-0" style="font-size: 0.75rem;">${dateStr}</small>
                     </div>
                     <hr class="my-1">
-                    <p class="text-theme-auto my-1 mx-0 p-0" style="white-space: pre-line;">${r(e.comment||"")}</p>
-                </div>`}).join("")}},h=async()=>{if(s){s.innerHTML=`
-                <div class="text-center p-3 text-secondary">
-                    <span class="spinner-border spinner-border-sm me-2"></span>Memuat ucapan...
-                </div>`;try{let e=await(await fetch(o,{method:"GET",redirect:"follow"})).text();console.log("Google Sheets response:",e);let a;try{a=JSON.parse(e)}catch{console.error("Response bukan JSON valid:",e.substring(0,500)),u([]);return}a&&a.status==="success"&&Array.isArray(a.data)?u(a.data):(console.warn("Format response tidak sesuai:",a),u([]))}catch(t){console.error("Gagal memuat ucapan dari Google Sheets:",t),s.innerHTML=`
-                    <div class="text-center p-4 mx-0 mt-0 mb-3 bg-theme-auto rounded-4 shadow">
-                        <p class="fw-bold p-0 m-0 text-danger" style="font-size: 0.95rem;">
-                            \u26A0\uFE0F Gagal memuat ucapan. Silakan refresh halaman.
-                        </p>
-                        <small class="text-muted">${r(t.message)}</small>
-                    </div>`}}},b=async t=>{let e=i?.value?.trim()||"",a=f?.value||"0",c=l?.value?.trim()||"";if(!e){alert("Silakan isikan Nama Anda."),i?.focus();return}if(a==="0"){alert("Silakan pilih Konfirmasi Presensi (Datang / Berhalangan)."),f?.focus();return}if(!c){alert("Silakan tuliskan Ucapan & Doa Anda."),l?.focus();return}let m=t.innerHTML;t.disabled=!0,t.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Mengirim...';try{let n=new FormData;n.append("name",e),n.append("presence",a==="1"?"1":"0"),n.append("comment",c),await fetch(o,{method:"POST",mode:"no-cors",body:n});try{localStorage.setItem("guest_name",e)}catch{}let y=new Date,v=y.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})+", "+y.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),S=a==="1"?'<i class="fa-solid fa-circle-check text-success ms-1" title="Hadir"></i>':'<i class="fa-solid fa-circle-xmark text-danger ms-1" title="Berhalangan"></i>',x=s?.querySelector(".text-center");x&&x.remove();let p=document.createElement("div");p.className="bg-theme-auto shadow p-3 mx-0 mt-0 mb-3 rounded-4",p.innerHTML=`
+                    <p class="text-theme-auto my-1 mx-0 p-0" style="white-space: pre-line;">${escapeHtml(c.comment || '')}</p>
+                </div>`;
+            }).join('');
+        };
+
+        // Load ucapan dari Google Sheets (GET) tanpa loading spinner awal
+        const loadComments = async () => {
+            if (!commentsEl) return;
+
+            try {
+                const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+                const text = await res.text();
+
+                let json;
+                try {
+                    json = JSON.parse(text);
+                } catch {
+                    renderList([]);
+                    return;
+                }
+
+                if (json && json.status === 'success' && Array.isArray(json.data)) {
+                    renderList(json.data);
+                } else {
+                    renderList([]);
+                }
+            } catch (err) {
+                console.warn('Gagal memuat ucapan dari Google Sheets:', err);
+                renderList([]);
+            }
+        };
+
+        // Kirim ucapan ke Google Sheets (POST)
+        const sendComment = async (btn) => {
+            const name = formName?.value?.trim() || '';
+            const presence = formPresence?.value || '0';
+            const comment = formComment?.value?.trim() || '';
+
+            if (!name) {
+                alert('Silakan isikan Nama Anda.');
+                formName?.focus();
+                return;
+            }
+
+            if (presence === '0') {
+                alert('Silakan pilih Konfirmasi Presensi (Datang / Berhalangan).');
+                formPresence?.focus();
+                return;
+            }
+
+            if (!comment) {
+                alert('Silakan tuliskan Ucapan & Doa Anda.');
+                formComment?.focus();
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mengirim...';
+
+            try {
+                // Siapkan data sebagai URLSearchParams dan FormData agar kompatibel
+                const params = new URLSearchParams();
+                params.append('name', name);
+                params.append('presence', presence === '1' ? '1' : '0');
+                params.append('comment', comment);
+
+                // Kirim POST ke Web App Google Script
+                await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: params
+                });
+
+                // Simpan nama ke localStorage
+                try {
+                    localStorage.setItem('guest_name', name);
+                } catch {}
+
+                // Buat card baru secara instan di tampilan
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' +
+                                now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                const isHadir = presence === '1';
+                const badge = isHadir
+                    ? '<i class="fa-solid fa-circle-check text-success ms-1" title="Hadir"></i>'
+                    : '<i class="fa-solid fa-circle-xmark text-danger ms-1" title="Berhalangan"></i>';
+
+                // Hapus placeholder kosong jika ada
+                const emptyPlaceholder = commentsEl?.querySelector('.text-center');
+                if (emptyPlaceholder) {
+                    emptyPlaceholder.remove();
+                }
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'bg-theme-auto shadow p-3 mx-0 mt-0 mb-3 rounded-4';
+                cardDiv.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
                         <p class="text-theme-auto text-truncate m-0 p-0" style="font-size: 0.95rem;">
-                            <strong class="me-1">${r(e)}</strong> ${S}
+                            <strong class="me-1">${escapeHtml(name)}</strong> ${badge}
                         </p>
-                        <small class="text-theme-auto m-0 p-0" style="font-size: 0.75rem;">${r(v)}</small>
+                        <small class="text-theme-auto m-0 p-0" style="font-size: 0.75rem;">${escapeHtml(dateStr)}</small>
                     </div>
                     <hr class="my-1">
-                    <p class="text-theme-auto my-1 mx-0 p-0" style="white-space: pre-line;">${r(c)}</p>
-                `,s&&s.prepend(p),l&&(l.value=""),alert("Terima kasih atas ucapan dan doa restunya!"),setTimeout(()=>{h()},2500)}catch(n){console.error("Error sending comment:",n),alert("Gagal mengirim ucapan. Silakan coba lagi.")}finally{t.disabled=!1,t.innerHTML=m}};d&&(d.removeAttribute("onclick"),d.onclick=t=>{t.preventDefault(),t.stopPropagation(),b(d)}),h()};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();})();
+                    <p class="text-theme-auto my-1 mx-0 p-0" style="white-space: pre-line;">${escapeHtml(comment)}</p>
+                `;
+
+                if (commentsEl) {
+                    commentsEl.prepend(cardDiv);
+                }
+
+                if (formComment) {
+                    formComment.value = '';
+                }
+
+                alert('Terima kasih atas ucapan dan doa restunya!');
+
+                // Sinkronisasi ulang data setelah 2.5 detik
+                setTimeout(() => {
+                    loadComments();
+                }, 2500);
+
+            } catch (err) {
+                console.error('Error sending comment:', err);
+                alert('Gagal mengirim ucapan. Silakan coba lagi.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        };
+
+        // Hubungkan event click tombol kirim
+        if (sendBtn) {
+            sendBtn.removeAttribute('onclick');
+            sendBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sendComment(sendBtn);
+            };
+        }
+
+        // Jalankan pemuatan komentar pertama kali
+        loadComments();
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
